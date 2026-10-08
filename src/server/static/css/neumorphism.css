@@ -1,0 +1,761 @@
+/* Neumorphic Design System matching Reference UI
+   Tactile Porcelain Slate-White Surface, Sculptural Dual Shadows & Graphite Accents */
+
+:root {
+  /* Exact Reference UI Surface Tones */
+  --bg-surface: #e1e3e7;
+  --bg-card: #e1e3e7;
+  --bg-inset: #d5d8de;
+  --bg-subcard: #d8dbe0;
+  
+  /* Sculptural Neumorphic Shadows */
+  --shadow-light: #ffffff;
+  --shadow-dark: #b8bcc5;
+  --shadow-dark-deep: #a8aeb8;
+  
+  /* Dual Shadow Elevations */
+  --nm-flat: 12px 12px 26px var(--shadow-dark), -12px -12px 26px var(--shadow-light);
+  --nm-flat-sm: 6px 6px 14px var(--shadow-dark), -6px -6px 14px var(--shadow-light);
+  --nm-flat-lg: 18px 18px 36px var(--shadow-dark), -18px -18px 36px var(--shadow-light);
+  
+  --nm-inset: inset 5px 5px 10px var(--shadow-dark), inset -5px -5px 10px var(--shadow-light);
+  --nm-inset-deep: inset 7px 7px 14px var(--shadow-dark-deep), inset -7px -7px 14px var(--shadow-light);
+  --nm-inset-sm: inset 3px 3px 6px var(--shadow-dark), inset -3px -3px 6px var(--shadow-light);
+  
+  /* Monochromatic Sculptural Accents (Reference UI) */
+  --accent-dark: #14171c;
+  --accent-dark-hover: #232730;
+  --accent-pill-bg: #1c2026;
+  --accent-glow: 0 4px 14px rgba(20, 23, 28, 0.22);
+
+  /* Typography & Crisp Minimalist Text */
+  --text-main: #14171c;
+  --text-secondary: #5a606d;
+  --text-muted: #8b929e;
+  
+  --radius-sm: 14px;
+  --radius-md: 22px;
+  --radius-lg: 32px;
+  --radius-xl: 42px;
+  --radius-full: 9999px;
+  
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-surface);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+  line-height: 1.4;
+  overflow-x: hidden;
+}
+
+/* -------------------------------------------------------------------------
+   Sculptural Neumorphic Elements
+------------------------------------------------------------------------- */
+.nm-card {
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.nm-card-sm {
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.nm-inset-well {
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset);
+  border-radius: var(--radius-md);
+}
+
+.nm-pill-trough {
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset-deep);
+  border-radius: var(--radius-full);
+  padding: 6px;
+  display: flex;
+  align-items: center;
+}
+
+.nm-btn {
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  border-radius: var(--radius-full);
+  border: none;
+  color: var(--text-main);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.nm-btn:hover {
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+.nm-btn:active, .nm-btn.active {
+  box-shadow: var(--nm-inset-sm);
+  background: var(--bg-inset);
+  transform: translateY(0);
+}
+
+.nm-btn-dark {
+  background: var(--accent-dark);
+  color: #ffffff;
+  border: none;
+  box-shadow: var(--nm-flat-sm), var(--accent-glow);
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.nm-btn-dark:hover {
+  background: var(--accent-dark-hover);
+  box-shadow: 8px 8px 18px var(--shadow-dark), -8px -8px 18px var(--shadow-light), 0 6px 20px rgba(20, 23, 28, 0.3);
+  transform: translateY(-1px);
+}
+
+.nm-btn-dark:active {
+  box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.1);
+  transform: translateY(0);
+}
+
+.nm-pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.nm-badge-dark {
+  background: var(--accent-dark);
+  color: #ffffff;
+  box-shadow: var(--nm-flat-sm);
+}
+
+.nm-badge-pill {
+  background: var(--bg-inset);
+  color: var(--text-main);
+  box-shadow: var(--nm-inset-sm);
+}
+
+.nm-badge-neutral {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--nm-flat-sm);
+}
+
+/* -------------------------------------------------------------------------
+   App Shell Layout
+------------------------------------------------------------------------- */
+.app-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+/* Header */
+.top-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat);
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-logo-disc {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.brand-logo-disc::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--text-main);
+  box-shadow: 0 0 6px rgba(20, 23, 28, 0.3);
+}
+
+.brand-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+}
+
+.brand-title span {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.user-selector-trough {
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset-sm);
+  border-radius: var(--radius-full);
+  padding: 4px;
+  display: flex;
+  gap: 6px;
+}
+
+.user-toggle-pill {
+  padding: 8px 18px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-toggle-pill.active {
+  background: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--nm-flat-sm);
+}
+
+/* Nav Tabs Segmented Control */
+.nav-trough {
+  display: flex;
+  padding: 6px;
+  border-radius: var(--radius-xl);
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset);
+  gap: 8px;
+}
+
+.nav-tab-btn {
+  flex: 1;
+  padding: 12px 18px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.25s ease;
+}
+
+.nav-tab-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text-main);
+}
+
+.nav-tab-btn.active {
+  background: var(--bg-card);
+  color: var(--text-main);
+  box-shadow: var(--nm-flat);
+}
+
+.nav-tab-btn.active svg {
+  stroke: var(--text-main);
+}
+
+/* -------------------------------------------------------------------------
+   Tactile Widget Bar (Reference UI style)
+------------------------------------------------------------------------- */
+.widgets-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.widget-card {
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: var(--radius-md);
+}
+
+.widget-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.widget-val {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+  margin-top: 2px;
+}
+
+.widget-icon-pill {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+}
+
+/* -------------------------------------------------------------------------
+   Tab Panels
+------------------------------------------------------------------------- */
+.tab-content-panel {
+  display: none;
+  animation: tabFadeIn 0.25s ease;
+}
+
+.tab-content-panel.active {
+  display: block;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* -------------------------------------------------------------------------
+   Messaging (Clean & Minimal)
+------------------------------------------------------------------------- */
+.chat-shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  min-height: 580px;
+}
+
+.chat-sidebar {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.peer-card-well {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.peer-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.telemetry-well {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.telemetry-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+}
+
+.telemetry-item span:first-child {
+  color: var(--text-secondary);
+}
+
+.telemetry-item span:last-child {
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+}
+
+/* Chat Main View */
+.chat-main-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  height: 600px;
+}
+
+.chat-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(184, 188, 197, 0.35);
+}
+
+.chat-stream-box {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.msg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 68%;
+}
+
+.msg-bubble-wrap.sent {
+  align-self: flex-end;
+}
+
+.msg-bubble-wrap.received {
+  align-self: flex-start;
+}
+
+.msg-bubble {
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  word-break: break-word;
+}
+
+.msg-bubble-wrap.sent .msg-bubble {
+  border-top-right-radius: 4px;
+  border-left: 3px solid var(--accent-dark);
+}
+
+.msg-bubble-wrap.received .msg-bubble {
+  border-top-left-radius: 4px;
+}
+
+.msg-meta-row {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Input Bar with bottom pill trough */
+.chat-input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.chat-input-inset {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset);
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  color: var(--text-main);
+  outline: none;
+}
+
+.chat-input-inset:focus {
+  box-shadow: var(--nm-inset), 0 0 0 2px rgba(20, 23, 28, 0.25);
+}
+
+.quick-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* -------------------------------------------------------------------------
+   Vault (Sculptural Upload Slot like Reference UI)
+------------------------------------------------------------------------- */
+.vault-shell {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+}
+
+.vault-deposit-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Sculpted Upload Capsule matching reference UI */
+.sculpted-upload-slot {
+  padding: 28px 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset-deep);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sculpted-upload-slot:hover {
+  background: #cfd2d9;
+}
+
+.upload-pill-btn {
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  border-radius: var(--radius-full);
+  padding: 10px 24px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-main);
+}
+
+/* Vault Table */
+.vault-files-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.minimal-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.minimal-table th {
+  padding: 8px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  text-align: left;
+}
+
+.minimal-table tbody tr {
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  border-radius: var(--radius-md);
+}
+
+.minimal-table td {
+  padding: 12px 14px;
+  font-size: 0.84rem;
+}
+
+.minimal-table td:first-child {
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+  font-weight: 700;
+}
+
+.minimal-table td:last-child {
+  border-top-right-radius: var(--radius-md);
+  border-bottom-right-radius: var(--radius-md);
+}
+
+/* -------------------------------------------------------------------------
+   Quantum Threat Lab (HNDL Stepper)
+------------------------------------------------------------------------- */
+.hndl-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.hndl-action-card {
+  padding: 24px 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stepper-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.step-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.step-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-main);
+}
+
+.step-card h4 {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.step-card p {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+/* -------------------------------------------------------------------------
+   Cryptographic State (Compact Cards)
+------------------------------------------------------------------------- */
+.crypto-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 18px;
+}
+
+.compact-card {
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.compact-card h4 {
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compact-code {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-inset);
+  box-shadow: var(--nm-inset-sm);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-main);
+  word-break: break-all;
+}
+
+/* Modal */
+.nm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(225, 227, 231, 0.75);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s ease;
+}
+
+.nm-modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nm-modal-window {
+  width: 90%;
+  max-width: 580px;
+  padding: 28px;
+  background: var(--bg-card);
+  box-shadow: var(--nm-flat-lg);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .chat-shell, .vault-shell, .widgets-row, .stepper-grid {
+    grid-template-columns: 1fr;
+  }
+}

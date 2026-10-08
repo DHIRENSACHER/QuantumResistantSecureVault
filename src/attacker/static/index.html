@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intruder Interception Console • Port 8080</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/attacker.css">
+</head>
+<body>
+
+  <div class="attacker-shell">
+
+    <!-- Header -->
+    <header class="attacker-header">
+      <div class="brand-section">
+        <div class="radar-disc"></div>
+        <div>
+          <div class="brand-title">Intruder Interception Console</div>
+          <div style="display:flex; align-items:center; gap:8px; margin-top:3px;">
+            <span class="brand-target-pill">TARGET: ALICE ⇄ BOB WIRE</span>
+            <span style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono);">PORT 8080</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:16px;">
+        <div class="mode-trough">
+          <button class="mode-btn active" id="mode-hold" onclick="setMode('hold')">HOLD</button>
+          <button class="mode-btn" id="mode-pass" onclick="setMode('pass')">AUTO-PASS</button>
+          <button class="mode-btn tamper" id="mode-tamper" onclick="setMode('tamper')">AUTO-TAMPER</button>
+          <button class="mode-btn drop" id="mode-drop" onclick="setMode('drop')">AUTO-DROP</button>
+        </div>
+
+        <a href="http://127.0.0.1:8000" target="_blank" style="padding:8px 16px; border-radius:var(--radius-sm); border:1px solid var(--border-accent); background:var(--bg-surface); color:var(--text-main); font-size:0.78rem; font-weight:700; font-family:var(--font-mono); text-decoration:none;">
+          Open Alice/Bob Vault ↗
+        </a>
+      </div>
+    </header>
+
+    <!-- Telemetry Cards -->
+    <div class="telemetry-grid">
+      <div class="telemetry-card">
+        <div class="telemetry-label">Intercepted Wire Packets</div>
+        <div class="telemetry-val" id="stat-intercepted" style="color:var(--cyber-blue);">0</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-label">Read / Decrypt Attempts</div>
+        <div class="telemetry-val" id="stat-reads" style="color:var(--cyber-purple);">0</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-label">Tampered Envelopes</div>
+        <div class="telemetry-val" id="stat-tampered" style="color:var(--cyber-amber);">0</div>
+      </div>
+      <div class="telemetry-card">
+        <div class="telemetry-label">Dropped Packets (DOS)</div>
+        <div class="telemetry-val" id="stat-dropped" style="color:var(--cyber-red);">0</div>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="main-grid">
+
+      <!-- Left Panel: Live Stream -->
+      <section class="panel-card">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyber-blue)" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Captured Wire Traffic
+          </div>
+          <button onclick="fetchPackets()" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:0.75rem; font-family:var(--font-mono);">
+            ↻ REFRESH
+          </button>
+        </div>
+
+        <div class="packets-stream" id="packets-container">
+          <div style="text-align:center; padding:48px 16px; color:var(--text-dim); font-size:0.82rem; font-family:var(--font-mono);">
+            No intercepted packets yet.<br>Send a message between Alice & Bob in the Vault app to capture live wire traffic.
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Panel: Deep Packet Inspector & Attack Suite -->
+      <section class="panel-card" id="inspector-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--cyber-amber)" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Packet Inspector & Adversary Suite
+          </div>
+          <div id="inspector-pkt-id" style="font-size:0.72rem; font-family:var(--font-mono); color:var(--text-muted);">No packet selected</div>
+        </div>
+
+        <div class="inspector-body" id="inspector-content">
+          <div style="text-align:center; padding:64px 20px; color:var(--text-dim); font-family:var(--font-mono); font-size:0.85rem;">
+            Select an intercepted packet from the left stream to inspect headers and execute attacks.
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  </div>
+
+  <script src="/static/js/attacker.js"></script>
+</body>
+</html>

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login • QuantumVault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/neumorphism.css">
+  <style>
+    .login-wrapper {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    .login-box {
+      width: 100%;
+      max-width: 460px;
+      padding: 36px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      text-align: center;
+    }
+
+    .login-brand-disc {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto;
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      box-shadow: var(--nm-flat);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .login-brand-disc::after {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      border-radius: var(--radius-full);
+      background: var(--text-main);
+      box-shadow: 0 0 8px rgba(20, 23, 28, 0.3);
+    }
+
+    .login-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text-main);
+      margin-top: 4px;
+    }
+
+    .login-title span {
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .login-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: -16px;
+    }
+
+    .quick-users-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      text-align: left;
+      margin-bottom: 6px;
+    }
+
+    .quick-users-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+
+    .user-select-btn {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: none;
+      background: var(--bg-card);
+      box-shadow: var(--nm-flat-sm);
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .user-select-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .user-select-btn.active {
+      background: var(--bg-inset);
+      box-shadow: var(--nm-inset-sm);
+    }
+
+    .key-isolation-card {
+      padding: 16px 18px;
+      border-radius: var(--radius-md);
+      background: var(--bg-inset);
+      box-shadow: var(--nm-inset-sm);
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .key-isolation-header {
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .key-isolation-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.76rem;
+    }
+
+    .key-isolation-row span:first-child {
+      color: var(--text-secondary);
+    }
+
+    .key-isolation-row span:last-child {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .login-error {
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      background: rgba(220, 38, 38, 0.08);
+      color: #dc2626;
+      font-size: 0.78rem;
+      font-weight: 600;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-wrapper">
+    <div class="nm-card login-box">
+
+      <div class="login-brand-disc"></div>
+
+      <div>
+        <div class="login-title">Quantum<span>Vault</span></div>
+        <div style="display:flex; justify-content:center; gap:8px; margin-top:8px;">
+          <span class="nm-pill-badge nm-badge-dark">FIPS 203</span>
+          <span class="nm-pill-badge nm-badge-dark">FIPS 204</span>
+        </div>
+      </div>
+
+      <div class="login-subtitle">
+        Independent Keystore & Hybrid Post-Quantum Identity
+      </div>
+
+      <div id="login-error-msg" class="login-error"></div>
+
+      <!-- Quick Identity Selection (3 Accounts) -->
+      <div>
+        <div class="quick-users-label">Select Registered Identity</div>
+        <div class="quick-users-grid" id="quick-users-container" style="grid-template-columns: repeat(3, 1fr);">
+          <button class="user-select-btn active" onclick="selectUser('alice')">
+            <span>Alice</span>
+            <span style="font-size:0.68rem; color:var(--text-muted);">Sender</span>
+          </button>
+          <button class="user-select-btn" onclick="selectUser('bob')">
+            <span>Bob</span>
+            <span style="font-size:0.68rem; color:var(--text-muted);">Receiver</span>
+          </button>
+          <button class="user-select-btn" onclick="selectUser('intruder')">
+            <span style="color:#ef4444;">Intruder</span>
+            <span style="font-size:0.68rem; color:var(--text-muted);">Attacker</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Attacker Console Quick Launch Banner -->
+      <div id="attacker-console-banner" style="display:none; padding:12px 14px; border-radius:var(--radius-md); background:var(--bg-inset); box-shadow:var(--nm-inset-sm); text-align:left; border-left:3px solid #ef4444;">
+        <div style="font-size:0.75rem; font-weight:800; color:var(--text-main); margin-bottom:4px;">
+          ⚔️ Adversary Interception Console
+        </div>
+        <div style="font-size:0.72rem; color:var(--text-secondary); line-height:1.4;">
+          The Intruder possesses an independent backend server on Port 8080 for deep packet inspection, Shor's cryptanalysis, in-transit payload tampering, and message dropping.
+        </div>
+        <a href="http://127.0.0.1:8080" target="_blank" class="nm-btn-dark" style="margin-top:10px; width:100%; text-decoration:none; padding:8px 12px; font-size:0.75rem;">
+          Open Attacker Console (Port 8080) ↗
+        </a>
+      </div>
+
+      <!-- Custom Identity Input -->
+      <div style="display:flex; flex-direction:column; gap:6px; text-align:left;">
+        <label style="font-size:0.72rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted);">
+          User ID / KeyStore Alias
+        </label>
+        <div class="nm-pill-trough">
+          <input
+            type="text"
+            id="login-user-input"
+            class="chat-input-inset"
+            placeholder="alice, bob, charlie..."
+            value="alice"
+            style="width:100%; border:none; background:transparent; box-shadow:none; padding:8px 14px;"
+            onkeydown="if(event.key==='Enter') executeLogin()"
+            oninput="handleUserInputChange()"
+          >
+        </div>
+      </div>
+
+      <!-- Cryptographic Key Isolation Breakdown -->
+      <div class="key-isolation-card">
+        <div class="key-isolation-header">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Isolated Client Keystore
+        </div>
+        <div class="key-isolation-row">
+          <span>Private Key Storage:</span>
+          <span>In-Memory Keystore</span>
+        </div>
+        <div class="key-isolation-row">
+          <span>Signing Key:</span>
+          <span>ML-DSA-65 (FIPS 204)</span>
+        </div>
+        <div class="key-isolation-row">
+          <span>Decapsulation Key:</span>
+          <span>ML-KEM-768 (FIPS 203)</span>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-muted); line-height:1.3; margin-top:4px;">
+          Each user owns a unique private key. Decryption is mathematically locked to the designated recipient's private key.
+        </div>
+      </div>
+
+      <!-- Action Button -->
+      <button id="btn-login-action" class="nm-btn-dark" style="width:100%;" onclick="executeLogin()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Enter Secure Vault
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    let registeredUsers = ['alice', 'bob'];
+
+    async function loadRegisteredUsers() {
+      try {
+        const res = await fetch('/api/v1/auth/users');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.users && data.users.length > 0) {
+            registeredUsers = data.users.map(u => u.user_id);
+            renderQuickUsers(data.users);
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load users list:", e);
+      }
+    }
+
+    function renderQuickUsers(users) {
+      const container = document.getElementById('quick-users-container');
+      const currentVal = document.getElementById('login-user-input').value.trim().toLowerCase();
+      container.innerHTML = '';
+
+      users.forEach(u => {
+        const btn = document.createElement('button');
+        const isActive = u.user_id === currentVal;
+        btn.className = `user-select-btn ${isActive ? 'active' : ''}`;
+        btn.onclick = () => selectUser(u.user_id);
+        btn.innerHTML = `
+          <span>${u.display_name}</span>
+          <span style="font-size:0.68rem; color:var(--text-muted);">${u.active_prekeys} OPKs</span>
+        `;
+        container.appendChild(btn);
+      });
+
+      // Also add "+ New User" capsule if not already present
+      const newBtn = document.createElement('button');
+      newBtn.className = 'user-select-btn';
+      newBtn.onclick = () => {
+        const customName = prompt("Enter new user name (e.g. charlie, david):");
+        if (customName && customName.trim()) {
+          selectUser(customName.trim().toLowerCase());
+        }
+      };
+      newBtn.innerHTML = `
+        <span style="color:var(--text-secondary);">+ New User</span>
+        <span style="font-size:0.68rem; color:var(--text-muted);">Create</span>
+      `;
+      container.appendChild(newBtn);
+    }
+
+    function selectUser(userId) {
+      document.getElementById('login-user-input').value = userId;
+      updateQuickButtonsActive(userId);
+
+      const banner = document.getElementById('attacker-console-banner');
+      if (banner) {
+        banner.style.display = (userId === 'intruder') ? 'block' : 'none';
+      }
+    }
+
+    function handleUserInputChange() {
+      const val = document.getElementById('login-user-input').value.trim().toLowerCase();
+      updateQuickButtonsActive(val);
+
+      const banner = document.getElementById('attacker-console-banner');
+      if (banner) {
+        banner.style.display = (val === 'intruder') ? 'block' : 'none';
+      }
+    }
+
+    function updateQuickButtonsActive(userId) {
+      const btns = document.querySelectorAll('.user-select-btn');
+      btns.forEach(b => {
+        const label = b.querySelector('span:first-child')?.innerText?.toLowerCase();
+        if (label === userId) {
+          b.classList.add('active');
+        } else {
+          b.classList.remove('active');
+        }
+      });
+    }
+
+    async function executeLogin() {
+      const input = document.getElementById('login-user-input');
+      const errorMsg = document.getElementById('login-error-msg');
+      const loginBtn = document.getElementById('btn-login-action');
+
+      const userId = input.value.trim().toLowerCase();
+      if (!userId) {
+        errorMsg.innerText = "Please enter or select a user identity.";
+        errorMsg.style.display = "block";
+        return;
+      }
+
+      errorMsg.style.display = "none";
+      loginBtn.disabled = true;
+      loginBtn.innerText = "Initializing Keystore...";
+
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_id: userId })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Authentication failed");
+        }
+
+        const data = await res.json();
+
+        // Store authenticated identity in local session
+        sessionStorage.setItem('quantum_vault_user', data.user.user_id);
+        localStorage.setItem('quantum_vault_user', data.user.user_id);
+        sessionStorage.setItem('quantum_vault_user_info', JSON.stringify(data.user));
+
+        // Redirect to main vault dashboard
+        window.location.href = '/';
+      } catch (err) {
+        errorMsg.innerText = err.message || "Failed to authenticate with keystore.";
+        errorMsg.style.display = "block";
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+          Enter Secure Vault
+        `;
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadRegisteredUsers();
+    });
+  </script>
+</body>
+</html>

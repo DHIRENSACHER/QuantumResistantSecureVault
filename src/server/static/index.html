@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuantumVault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/neumorphism.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="top-header">
+      <div class="brand-section">
+        <div class="brand-logo-disc"></div>
+        <div class="brand-title">Quantum<span>Vault</span></div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="nm-pill-badge nm-badge-dark">FIPS 203</span>
+        <span class="nm-pill-badge nm-badge-dark">FIPS 204</span>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="user-selector-trough" style="padding:4px 12px; gap:8px;">
+          <div class="peer-avatar" id="header-user-avatar" style="width:28px; height:28px; font-size:0.8rem;">A</div>
+          <div style="display:flex; flex-direction:column; text-align:left;">
+            <span id="header-user-name" style="font-weight:800; font-size:0.82rem; line-height:1.1;">Alice</span>
+            <span style="font-size:0.65rem; color:var(--text-muted);">Private Key Loaded</span>
+          </div>
+        </div>
+        <button class="nm-btn" style="padding:8px 14px; font-size:0.75rem;" onclick="logoutUser()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- Nav Tabs -->
+    <nav class="nav-trough">
+      <button class="nav-tab-btn active" onclick="switchTab('chat')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Messaging
+      </button>
+      <button class="nav-tab-btn" onclick="switchTab('vault')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+        Vault
+      </button>
+      <button class="nav-tab-btn" onclick="switchTab('hndl')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        HNDL Lab
+      </button>
+      <button class="nav-tab-btn" onclick="switchTab('crypto')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Keys
+      </button>
+    </nav>
+
+    <!-- Tactile Minimal Stats Bar -->
+    <div class="widgets-row">
+      <div class="nm-card widget-card">
+        <div>
+          <div class="widget-label">Ratchet Turns</div>
+          <div class="widget-val" id="stat-ratchet-turns">0</div>
+        </div>
+        <div class="widget-icon-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </div>
+      </div>
+
+      <div class="nm-card widget-card">
+        <div>
+          <div class="widget-label">PQC Immunity</div>
+          <div class="widget-val">100%</div>
+        </div>
+        <div class="widget-icon-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+      </div>
+
+      <div class="nm-card widget-card">
+        <div>
+          <div class="widget-label">Leakage</div>
+          <div class="widget-val">0 B</div>
+        </div>
+        <div class="widget-icon-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+        </div>
+      </div>
+
+      <div class="nm-card widget-card">
+        <div>
+          <div class="widget-label">PreKey Pool</div>
+          <div class="widget-val" id="crypto-opk-active">20</div>
+        </div>
+        <div class="widget-icon-pill">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: MESSAGING -->
+    <section id="tab-chat" class="tab-content-panel active">
+      <div class="chat-shell">
+        <aside class="nm-card chat-sidebar">
+          <div class="peer-card-well">
+            <div class="peer-avatar" id="peer-avatar-letter">B</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:0.92rem;" id="peer-name-display">Bob</div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">Recipient Peer</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Select Recipient</label>
+            <select id="peer-selector" class="chat-input-inset" onchange="switchPeer(this.value)" style="border-radius:var(--radius-sm); padding:8px 12px; cursor:pointer;">
+              <option value="bob">Bob</option>
+              <option value="alice">Alice</option>
+            </select>
+          </div>
+
+          <div class="telemetry-well">
+            <div class="telemetry-item">
+              <span>Chain:</span>
+              <span id="telemetry-chain-step">Step 0</span>
+            </div>
+            <div class="telemetry-item">
+              <span>Turns:</span>
+              <span id="telemetry-turns">0</span>
+            </div>
+            <div class="telemetry-item">
+              <span>Sig:</span>
+              <span>ML-DSA-65</span>
+            </div>
+          </div>
+        </aside>
+
+        <main class="nm-card chat-main-card">
+          <div class="chat-header-bar">
+            <div style="font-weight:800; font-size:1.05rem;" id="chat-header-title">Chat with Bob</div>
+            <span class="nm-pill-badge nm-badge-neutral">Turn #<span id="chat-turn-badge">0</span></span>
+          </div>
+
+          <div class="chat-stream-box" id="chat-stream">
+            <!-- Messages -->
+          </div>
+
+          <div class="chat-input-row">
+            <input type="text" id="chat-input" class="chat-input-inset" placeholder="Quantum encrypted message..." onkeydown="if(event.key==='Enter') sendMessage()">
+            <button class="nm-btn-dark" onclick="sendMessage()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send
+            </button>
+          </div>
+
+          <div class="quick-row">
+            <button class="nm-btn" style="padding:6px 14px; font-size:0.75rem;" onclick="quickSend('outgoing', 'Quantum test packet.')">Send Packet</button>
+            <button class="nm-btn" style="padding:6px 14px; font-size:0.75rem;" onclick="quickSend('incoming', 'Received. Ratchet healed.')">Simulate Peer Reply</button>
+          </div>
+        </main>
+      </div>
+    </section>
+
+    <!-- TAB 2: VAULT -->
+    <section id="tab-vault" class="tab-content-panel">
+      <div class="vault-shell">
+        <div class="nm-card vault-deposit-card">
+          <div style="font-weight:800; font-size:1.05rem;">Deposit File</div>
+
+          <!-- Sculpted upload slot matching reference UI -->
+          <div class="sculpted-upload-slot" onclick="document.getElementById('vault-file-input').click()">
+            <div class="upload-pill-btn">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:600;" id="upload-status-label">Drop file or click to select</div>
+            <input type="file" id="vault-file-input" style="display:none;" onchange="handleFileSelected(this)">
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            <label style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Recipient</label>
+            <input type="text" id="vault-recipient-input" class="chat-input-inset" value="bob" style="border-radius:var(--radius-sm); padding:10px 14px;">
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button class="nm-btn" style="flex:1; padding:8px 10px; font-size:0.75rem;" onclick="loadSampleFile('defense_spec.pdf')">Spec.pdf</button>
+            <button class="nm-btn" style="flex:1; padding:8px 10px; font-size:0.75rem;" onclick="loadSampleFile('audit.docx')">Audit.docx</button>
+          </div>
+
+          <div id="upload-status-box" style="display:none;" class="telemetry-well"></div>
+
+          <button id="btn-vault-upload" class="nm-btn-dark" style="width:100%;" onclick="uploadSelectedFile()">
+            Encrypt & Deposit
+          </button>
+        </div>
+
+        <div class="nm-card vault-files-card">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:800; font-size:1.05rem;">Stored Vault Files</div>
+            <button class="nm-btn" style="padding:6px 14px; font-size:0.75rem;" onclick="refreshVaultFiles()">Refresh</button>
+          </div>
+
+          <table class="minimal-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Size</th>
+                <th>Chunks</th>
+                <th>Sender</th>
+                <th>Recipient</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="vault-files-tbody">
+              <!-- Files list -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: HNDL LAB -->
+    <section id="tab-hndl" class="tab-content-panel">
+      <div class="hndl-shell">
+        <div class="nm-card hndl-action-card">
+          <div>
+            <div style="font-weight:800; font-size:1.2rem;">HNDL Attack Simulation</div>
+            <div style="font-size:0.78rem; color:var(--text-secondary); margin-top:2px;">Simulated Shor's discrete-log break vs ML-KEM-768 lattice shield</div>
+          </div>
+          <button class="nm-btn-dark" onclick="runQuantumSimulation()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Simulate Attack
+          </button>
+        </div>
+
+        <div class="stepper-grid" id="simulation-timeline">
+          <div class="nm-card step-card">
+            <div class="step-circle">1</div>
+            <h4>Harvest</h4>
+            <p>Adversary records ciphertext & public keys.</p>
+          </div>
+          <div class="nm-card step-card">
+            <div class="step-circle">2</div>
+            <h4>Shor's CRQC</h4>
+            <p>Discrete log broken in O(n³). ECDH secret leaked.</p>
+          </div>
+          <div class="nm-card step-card">
+            <div class="step-circle">3</div>
+            <h4>Lattice Shield</h4>
+            <p>ML-KEM-768 blocks decryption. 0 bits leaked.</p>
+          </div>
+          <div class="nm-card step-card">
+            <div class="step-circle" style="color:#16a34a;">4</div>
+            <h4>Healing</h4>
+            <p>Recipient decapsulates. Ratchet heals session.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: KEYS -->
+    <section id="tab-crypto" class="tab-content-panel">
+      <div class="crypto-grid">
+        <div class="nm-card compact-card">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            ML-DSA-65 Fingerprint
+          </h4>
+          <div class="compact-code" id="crypto-mldsa-fp">Loading...</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">FIPS 204 • 1,952 Bytes Public Key</div>
+        </div>
+
+        <div class="nm-card compact-card">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/></svg>
+            X25519 Identity
+          </h4>
+          <div class="compact-code" id="crypto-x25519-pub">Loading...</div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">Curve25519 • 32 Bytes Public Key</div>
+        </div>
+
+        <div class="nm-card compact-card">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            PreKey Status
+          </h4>
+          <div style="display:flex; gap:12px; font-weight:800; font-size:1.1rem; color:var(--text-main);">
+            <div>Active: <span id="crypto-opk-active-2">20</span></div>
+            <div>Consumed: <span id="crypto-opk-consumed">0</span></div>
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">ML-KEM-768 Ephemeral PreKeys</div>
+        </div>
+
+        <div class="nm-card compact-card">
+          <h4>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Private Key Security
+          </h4>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;">
+            <div>User: <span id="crypto-active-user-display" style="font-family:var(--font-mono); font-weight:800;">alice</span></div>
+            <div style="color:#16a34a; font-weight:700;">✔ Isolated Client Keystore</div>
+            <div style="font-size:0.74rem; color:var(--text-secondary);">Decryption requires matching private key</div>
+          </div>
+          <div style="font-size:0.72rem; color:var(--text-muted);">Zero-Access Relay Guarantee</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Modal -->
+  <div class="nm-modal-backdrop" id="inspect-modal">
+    <div class="nm-modal-window">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 id="modal-title" style="font-weight:800;">Manifest</h4>
+        <button class="nm-btn" style="padding:4px 12px; font-size:0.75rem;" onclick="closeModal()">✕</button>
+      </div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

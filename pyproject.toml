@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-resistant-secure-vault"
+version = "0.1.0"
+description = "Hybrid Post-Quantum Double Ratchet (HPQ-DR) Secure Messaging & Zero-Access Vault"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Pipotam Team" }
+]
+dependencies = [
+    "cryptography>=43.0.0",
+    "kyber-py>=1.2.0",
+    "dilithium-py>=1.4.0",
+    "pydantic>=2.8.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "rich>=13.7.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0"
+]
+
+[project.scripts]
+vault-cli = "src.cli.main:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

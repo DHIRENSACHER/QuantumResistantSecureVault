@@ -1,0 +1,32 @@
+.DS_Store
+reference ui.jpeg
+implementation_plan.md
+
+
+# OS & System files                                
+.DS_Store                                          
+Thumbs.db                                          
+                                                    
+# Documentation / Reference files (if not intended 
+for repo)
+reference ui.*
+implementation_plan.md
+
+# Python cache & build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Testing & Linting
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
