@@ -116,42 +116,187 @@ body {
   border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
-.mode-trough {
-  background: var(--bg-inset);
-  padding: 4px;
-  border-radius: var(--radius-md);
+/* Master Power Switch ON / OFF */
+.master-power-card {
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-inset);
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
 }
 
-.mode-btn {
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
+.master-power-label {
+  font-size: 0.72rem;
+  font-weight: 800;
   font-family: var(--font-mono);
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
 }
 
-.mode-btn.active {
+.master-power-switch {
+  display: flex;
   background: var(--bg-surface);
-  color: var(--text-main);
+  border-radius: var(--radius-sm);
+  padding: 3px;
+  gap: 4px;
   border: 1px solid var(--border-accent);
 }
 
-.mode-btn.active.tamper {
-  color: var(--cyber-amber);
-  border-color: rgba(245, 158, 11, 0.4);
+.power-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.mode-btn.active.drop {
-  color: var(--cyber-red);
-  border-color: rgba(239, 68, 68, 0.4);
+.power-btn:hover {
+  color: var(--text-main);
+}
+
+.power-btn .power-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: all 0.2s ease;
+}
+
+.power-btn.on.active {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff5555;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+}
+
+.power-btn.on.active .power-dot {
+  background: #ff5555;
+  box-shadow: 0 0 8px #ff5555;
+  animation: pulse 1.2s infinite;
+}
+
+.power-btn.off.active {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+}
+
+.power-btn.off.active .power-dot {
+  background: #10b981;
+}
+
+/* Master Status Banner */
+.master-status-banner {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.3s ease;
+}
+
+.master-status-banner.on {
+  border-color: rgba(239, 68, 68, 0.45);
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.1) 0%, var(--bg-card) 100%);
+}
+
+.master-status-banner.off {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.08) 0%, var(--bg-card) 100%);
+}
+
+.status-indicator-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.master-status-banner.on .status-indicator-dot {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+.master-status-banner.off .status-indicator-dot {
+  background: #10b981;
+  box-shadow: 0 0 6px #10b981;
+}
+
+.status-headline {
+  font-weight: 800;
+  font-size: 0.88rem;
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.master-status-banner.on .status-headline {
+  color: #ef4444;
+}
+
+.master-status-banner.off .status-headline {
+  color: #10b981;
+}
+
+.status-subtext {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.status-badge-live {
+  padding: 5px 14px;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  flex-shrink: 0;
+}
+
+.master-status-banner.on .status-badge-live {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+.master-status-banner.off .status-badge-live {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.vault-link-btn {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-accent);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.vault-link-btn:hover {
+  background: var(--bg-card);
+  border-color: var(--cyber-blue);
+  color: var(--cyber-blue);
 }
 
 /* Telemetry Grid */

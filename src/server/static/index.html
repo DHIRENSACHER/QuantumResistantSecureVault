@@ -145,6 +145,14 @@
             <span class="nm-pill-badge nm-badge-neutral">Turn #<span id="chat-turn-badge">0</span></span>
           </div>
 
+          <div id="chat-alert-banner" style="display:none; margin-bottom:10px; padding:10px 14px; border-radius:var(--radius-sm); background:rgba(239, 68, 68, 0.1); border:1px solid rgba(239, 68, 68, 0.3); color:#dc2626; font-size:0.78rem; font-weight:700; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <span id="chat-alert-banner-text">Security Alert: Message tampered in transit!</span>
+            </div>
+            <button onclick="document.getElementById('chat-alert-banner').style.display='none'" style="background:transparent; border:none; color:#dc2626; font-weight:800; cursor:pointer; font-size:0.85rem;">✕</button>
+          </div>
+
           <div class="chat-stream-box" id="chat-stream">
             <!-- Messages -->
           </div>

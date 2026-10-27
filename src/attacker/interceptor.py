@@ -4,9 +4,14 @@ from __future__ import annotations
 
 import base64
 import copy
+import json
+import os
+import tempfile
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+
+STATE_FILE = os.path.join(tempfile.gettempdir(), "quantum_vault_interceptor_state.json")
 
 
 class AttackerInterceptor:
@@ -23,8 +28,10 @@ class AttackerInterceptor:
     def __init__(self):
         # packet_id -> packet_dict
         self.packets: Dict[str, Dict[str, Any]] = {}
-        # Interceptor mode: "hold" (manual action), "pass" (auto-forward), "tamper" (auto-tamper), "drop" (auto-drop)
-        self.mode: str = "hold"
+        # Interceptor mode: "tamper" (ON), "off" / "pass" (OFF), "hold" (manual action), "drop" (auto-drop)
+        # Defaults to ON ("tamper")
+        self.mode: str = "tamper"
+        self._last_file_mtime: float = 0.0
         self.stats = {
             "total_intercepted": 0,
             "read_attempts": 0,
@@ -32,16 +39,62 @@ class AttackerInterceptor:
             "dropped_count": 0,
             "forwarded_count": 0,
         }
+        self._sync_state_from_disk()
+
+    def _sync_state_from_disk(self):
+        """Syncs interceptor power/mode state from shared disk file across server processes."""
+        try:
+            if os.path.exists(STATE_FILE):
+                mtime = os.path.getmtime(STATE_FILE)
+                if mtime > self._last_file_mtime:
+                    with open(STATE_FILE, "r") as f:
+                        data = json.load(f)
+                        saved_mode = data.get("mode")
+                        if saved_mode:
+                            self.mode = saved_mode
+                    self._last_file_mtime = mtime
+        except Exception:
+            pass
+
+    def _persist_state_to_disk(self):
+        """Persists interceptor state to disk for multi-process coordination."""
+        try:
+            with open(STATE_FILE, "w") as f:
+                json.dump({
+                    "mode": self.mode,
+                    "is_on": self.is_on(),
+                    "timestamp": time.time(),
+                }, f)
+            self._last_file_mtime = os.path.getmtime(STATE_FILE)
+        except Exception:
+            pass
+
+    def is_on(self) -> bool:
+        """Returns True if the intruder interception & tampering server is ON."""
+        self._sync_state_from_disk()
+        return self.mode in ("tamper", "on")
+
+    def set_power(self, is_on: bool) -> bool:
+        """Turns the intruder server ON (auto-tampering) or OFF (clean pass-through)."""
+        if is_on:
+            self.mode = "tamper"
+        else:
+            self.mode = "off"
+        self._persist_state_to_disk()
+        return self.is_on()
 
     def intercept(self, sender_id: str, recipient_id: str, envelope_dict: dict) -> Dict[str, Any]:
-        """Captures a message envelope from the wire in real time."""
         packet_id = f"pkt_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
-        header = envelope_dict.get("header", {})
-        ct_b64 = envelope_dict.get("ciphertext", "")
-        sig_b64 = envelope_dict.get("signature", "")
+        if isinstance(envelope_dict, dict) and "envelope" in envelope_dict and isinstance(envelope_dict["envelope"], dict):
+            inner_env = envelope_dict["envelope"]
+        else:
+            inner_env = envelope_dict if isinstance(envelope_dict, dict) else {}
+        header = inner_env.get("header", {}) if isinstance(inner_env, dict) else {}
+        ct_b64 = inner_env.get("ciphertext", "") if isinstance(inner_env, dict) else ""
+        sig_b64 = inner_env.get("signature", "") if isinstance(inner_env, dict) else ""
 
         ct_bytes_len = len(base64.b64decode(ct_b64)) if ct_b64 else 0
-        kem_ct = header.get("kem_ct")
+        kem_ct = header.get("kem_ct") if isinstance(header, dict) else None
         kem_ct_len = len(base64.b64decode(kem_ct)) if kem_ct else 0
 
         packet = {
@@ -54,12 +107,12 @@ class AttackerInterceptor:
             "tampered_envelope": None,
             "ciphertext_b64": ct_b64,
             "ciphertext_len": ct_bytes_len,
-            "dh_pub_b64": header.get("dh_pub", ""),
+            "dh_pub_b64": header.get("dh_pub", "") if isinstance(header, dict) else "",
             "kem_ct_b64": kem_ct,
             "kem_ct_len": kem_ct_len,
             "signature_b64": sig_b64,
-            "ratchet_turn": header.get("ratchet_turn", 0),
-            "seq_num": header.get("n", 0),
+            "ratchet_turn": header.get("ratchet_turn", 0) if isinstance(header, dict) else 0,
+            "seq_num": header.get("n", 0) if isinstance(header, dict) else 0,
             "cryptanalysis_result": None,
             "delivery_result": None,
         }
@@ -68,15 +121,88 @@ class AttackerInterceptor:
         self.packets[packet_id] = packet
 
         # If in auto-tamper mode, automatically apply bit-flip
-        if self.mode == "tamper":
+        if self.is_on():
             self.tamper_packet(packet_id, "ciphertext_bitflip")
         elif self.mode == "drop":
             self.drop_packet(packet_id)
-        elif self.mode == "pass":
+        elif self.mode in ("pass", "off"):
             packet["status"] = "forwarded"
             self.stats["forwarded_count"] += 1
 
         return packet
+
+    def intercept_vault_file(
+        self,
+        sender_id: str,
+        recipient_id: str,
+        filename: str,
+        manifest_dict: dict,
+    ) -> Dict[str, Any]:
+        """Captures a zero-access file vault deposit on the wire and tampers if ON."""
+        self._sync_state_from_disk()
+        packet_id = f"pkt_vault_{int(time.time() * 1000)}_{uuid.uuid4().hex[:6]}"
+        manifest_copy = copy.deepcopy(manifest_dict)
+        sig = manifest_copy.get("signature", "")
+        wrapped = manifest_copy.get("wrapped_dek", {})
+
+        kem_ct = wrapped.get("kem_ciphertext", "")
+        kem_len = len(base64.b64decode(kem_ct)) if kem_ct else 0
+
+        packet = {
+            "packet_id": packet_id,
+            "timestamp": time.time(),
+            "sender_id": sender_id,
+            "recipient_id": recipient_id,
+            "payload_type": "vault_file",
+            "filename": filename,
+            "status": "intercepted",
+            "raw_envelope": manifest_copy,
+            "tampered_envelope": None,
+            "ciphertext_b64": wrapped.get("encrypted_dek", ""),
+            "ciphertext_len": manifest_copy.get("total_size", 0),
+            "dh_pub_b64": "",
+            "kem_ct_b64": kem_ct,
+            "kem_ct_len": kem_len,
+            "signature_b64": sig,
+            "ratchet_turn": 0,
+            "seq_num": manifest_copy.get("chunk_count", 1),
+            "cryptanalysis_result": None,
+            "delivery_result": None,
+        }
+
+        self.stats["total_intercepted"] += 1
+        self.packets[packet_id] = packet
+
+        if self.is_on():
+            # Automatically corrupt ML-DSA-65 signature on the manifest
+            tampered_manifest = copy.deepcopy(manifest_dict)
+            if sig and len(sig) > 20:
+                tampered_manifest["signature"] = "AAAA" + sig[4:]
+            else:
+                tampered_manifest["signature"] = "corrupted_signature_by_intruder"
+
+            packet["tampered_envelope"] = tampered_manifest
+            packet["status"] = "tampered"
+            packet["tamper_details"] = {
+                "type": "manifest_signature_corrupt",
+                "description": f"Corrupted NIST FIPS 204 ML-DSA-65 signature on vault manifest for '{filename}'.",
+            }
+            self.stats["tampered_count"] += 1
+            return {
+                "packet_id": packet_id,
+                "is_tampered": True,
+                "tampered_manifest": tampered_manifest,
+                "packet": packet,
+            }
+        else:
+            packet["status"] = "forwarded_clean"
+            self.stats["forwarded_count"] += 1
+            return {
+                "packet_id": packet_id,
+                "is_tampered": False,
+                "tampered_manifest": manifest_dict,
+                "packet": packet,
+            }
 
     def attempt_read(self, packet_id: str) -> Dict[str, Any]:
         """Simulates an attacker attempting to read/decrypt the intercepted wire packet."""
@@ -138,40 +264,52 @@ class AttackerInterceptor:
         self.stats["tampered_count"] += 1
         tampered_env = copy.deepcopy(packet["raw_envelope"])
 
+        if isinstance(tampered_env, dict) and "envelope" in tampered_env and isinstance(tampered_env["envelope"], dict):
+            env_target = tampered_env["envelope"]
+        else:
+            env_target = tampered_env if isinstance(tampered_env, dict) else {}
+
         tamper_details = {}
 
         if custom_payload:
             # Inject arbitrary forged base64 ciphertext
             forged_bytes = custom_payload.encode("utf-8")
-            tampered_env["ciphertext"] = base64.b64encode(forged_bytes).decode("ascii")
+            env_target["ciphertext"] = base64.b64encode(forged_bytes).decode("ascii")
             tamper_details = {
                 "type": "custom_injection",
                 "description": f"Injected custom attacker payload ({len(forged_bytes)} bytes)",
             }
         elif tamper_type == "ciphertext_bitflip":
-            # Flip the last byte of the ciphertext
-            raw_ct = base64.b64decode(tampered_env["ciphertext"])
+            raw_ct = None
+            if "ciphertext" in env_target and env_target["ciphertext"]:
+                try:
+                    raw_ct = base64.b64decode(env_target["ciphertext"])
+                except Exception:
+                    raw_ct = None
             if raw_ct:
                 barr = bytearray(raw_ct)
                 barr[-1] ^= 0xFF  # Invert all bits in the last byte
-                tampered_env["ciphertext"] = base64.b64encode(bytes(barr)).decode("ascii")
+                env_target["ciphertext"] = base64.b64encode(bytes(barr)).decode("ascii")
+            elif "signature" in env_target and env_target["signature"]:
+                sig = env_target["signature"]
+                env_target["signature"] = "AAAA" + sig[4:] if len(sig) > 4 else "corrupt"
             tamper_details = {
                 "type": "ciphertext_bitflip",
                 "description": "Flipped 8 bits in the AES-256-GCM ciphertext payload.",
             }
         elif tamper_type == "signature_corrupt":
-            # Corrupt the ML-DSA-65 signature bytes
-            sig = tampered_env.get("signature", "")
-            if len(sig) > 20:
-                tampered_env["signature"] = "AAAA" + sig[4:]
+            sig = env_target.get("signature", "") if isinstance(env_target, dict) else ""
+            if sig and len(sig) > 20:
+                env_target["signature"] = "AAAA" + sig[4:]
+            else:
+                env_target["signature"] = "corrupted_signature_by_intruder"
             tamper_details = {
                 "type": "signature_corrupt",
                 "description": "Corrupted 32 bits of the NIST FIPS 204 ML-DSA-65 digital signature.",
             }
         elif tamper_type == "header_seq_alter":
-            # Tamper with ratchet sequence counter
-            if "header" in tampered_env:
-                tampered_env["header"]["n"] = tampered_env["header"].get("n", 0) + 999
+            if isinstance(env_target, dict) and "header" in env_target and isinstance(env_target["header"], dict):
+                env_target["header"]["n"] = env_target["header"].get("n", 0) + 999
             tamper_details = {
                 "type": "header_seq_alter",
                 "description": "Altered message sequence number to trigger replay/out-of-order desync.",
@@ -238,8 +376,10 @@ class AttackerInterceptor:
         return sorted(self.packets.values(), key=lambda p: p["timestamp"], reverse=True)
 
     def get_status(self) -> Dict[str, Any]:
-        """Returns interceptor mode and live telemetry."""
+        """Returns interceptor mode, power state, and live telemetry."""
+        self._sync_state_from_disk()
         return {
+            "is_on": self.is_on(),
             "interceptor_mode": self.mode,
             "active_target": "alice ⇄ bob",
             "stats": self.stats,
@@ -248,7 +388,13 @@ class AttackerInterceptor:
         }
 
     def set_mode(self, new_mode: str) -> str:
-        """Sets interceptor mode: 'hold', 'pass', 'tamper', 'drop'."""
-        if new_mode in ["hold", "pass", "tamper", "drop"]:
-            self.mode = new_mode
+        """Sets interceptor mode: 'on', 'off', 'hold', 'pass', 'tamper', 'drop'."""
+        normalized = new_mode.lower().strip()
+        if normalized in ["on", "tamper"]:
+            self.mode = "tamper"
+        elif normalized in ["off", "pass"]:
+            self.mode = "off"
+        elif normalized in ["hold", "drop"]:
+            self.mode = normalized
+        self._persist_state_to_disk()
         return self.mode

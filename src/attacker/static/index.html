@@ -27,18 +27,38 @@
       </div>
 
       <div style="display:flex; align-items:center; gap:16px;">
-        <div class="mode-trough">
-          <button class="mode-btn active" id="mode-hold" onclick="setMode('hold')">HOLD</button>
-          <button class="mode-btn" id="mode-pass" onclick="setMode('pass')">AUTO-PASS</button>
-          <button class="mode-btn tamper" id="mode-tamper" onclick="setMode('tamper')">AUTO-TAMPER</button>
-          <button class="mode-btn drop" id="mode-drop" onclick="setMode('drop')">AUTO-DROP</button>
+        <!-- Master ON / OFF Control -->
+        <div class="master-power-card">
+          <div class="master-power-label">INTRUDER SERVER</div>
+          <div class="master-power-switch">
+            <button class="power-btn on active" id="power-btn-on" onclick="togglePower('on')">
+              <span class="power-dot"></span>
+              ON
+            </button>
+            <button class="power-btn off" id="power-btn-off" onclick="togglePower('off')">
+              <span class="power-dot"></span>
+              OFF
+            </button>
+          </div>
         </div>
 
-        <a href="http://127.0.0.1:8000" target="_blank" style="padding:8px 16px; border-radius:var(--radius-sm); border:1px solid var(--border-accent); background:var(--bg-surface); color:var(--text-main); font-size:0.78rem; font-weight:700; font-family:var(--font-mono); text-decoration:none;">
+        <a href="http://127.0.0.1:8000" target="_blank" class="vault-link-btn">
           Open Alice/Bob Vault ↗
         </a>
       </div>
     </header>
+
+    <!-- Master Live Status Banner -->
+    <div class="master-status-banner on" id="master-status-banner">
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span class="status-indicator-dot" id="status-indicator-dot"></span>
+        <div>
+          <div class="status-headline" id="status-headline">INTRUDER SERVER IS ON — AUTOMATIC WIRE TAMPERING ACTIVE</div>
+          <div class="status-subtext" id="status-subtext">All chat messages and shared vault documents between Alice and Bob are automatically intercepted and tampered on the wire, triggering cryptographic verification errors on their end.</div>
+        </div>
+      </div>
+      <div class="status-badge-live" id="status-badge-live">TAMPERING ACTIVE</div>
+    </div>
 
     <!-- Telemetry Cards -->
     <div class="telemetry-grid">

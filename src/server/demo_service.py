@@ -14,25 +14,33 @@ from src.vault.reassembly import FileVaultEngine
 class DemoManager:
     """Coordinates demo state and client interactions for the frontend."""
 
-    def __init__(self, storage: ZeroAccessStorage):
+    def __init__(self, storage: ZeroAccessStorage, app=None):
         self.storage = storage
+        self.app = app
         self.clients: Dict[str, VaultClient] = {}
         self.conversation_history: List[Dict[str, Any]] = []
         self._initialized = False
 
     def ensure_clients(self):
-        """Lazily initializes Alice, Bob, and Intruder demo clients."""
+        """Lazily initializes Alice and Bob demo clients."""
         if not self._initialized:
             self.get_or_create_client("alice")
             self.get_or_create_client("bob")
-            self.get_or_create_client("intruder")
             self._initialized = True
 
     def get_or_create_client(self, user_id: str) -> VaultClient:
         """Retrieves or instantiates an isolated client keystore with unique private keys."""
         uid = (user_id or "alice").strip().lower()
         if uid not in self.clients:
-            client = VaultClient(uid)
+            from fastapi.testclient import TestClient
+            if self.app is None:
+                try:
+                    from src.server.app import app
+                    self.app = app
+                except Exception:
+                    pass
+            transport = TestClient(self.app) if self.app is not None else None
+            client = VaultClient(uid, transport=transport)
             client.register()
             self.clients[uid] = client
         return self.clients[uid]
@@ -42,6 +50,8 @@ class DemoManager:
         self.ensure_clients()
         user_list = []
         for uid, client in self.clients.items():
+            if uid == "intruder":
+                continue
             user_list.append({
                 "user_id": uid,
                 "display_name": uid.capitalize(),
@@ -73,7 +83,7 @@ class DemoManager:
                     "ecdh": "Curve25519 (X25519)",
                 },
             },
-            "available_peers": [u for u in self.clients.keys() if u != uid],
+            "available_peers": [u for u in self.clients.keys() if u != uid and u != "intruder"],
         }
 
     def get_state(self, active_user: str = "alice", peer_id: Optional[str] = None) -> Dict[str, Any]:
@@ -82,8 +92,8 @@ class DemoManager:
         active_user = (active_user or "alice").strip().lower()
         client = self.get_or_create_client(active_user)
 
-        if not peer_id or peer_id == active_user:
-            available = [u for u in self.clients.keys() if u != active_user]
+        if not peer_id or peer_id == active_user or peer_id == "intruder":
+            available = [u for u in self.clients.keys() if u != active_user and u != "intruder"]
             peer_id = available[0] if available else ("bob" if active_user == "alice" else "alice")
 
         peer_client = self.get_or_create_client(peer_id)
@@ -139,7 +149,7 @@ class DemoManager:
         return {
             "active_user": active_user,
             "peer_id": peer_id,
-            "users": list(self.clients.keys()),
+            "users": [u for u in self.clients.keys() if u != "intruder"],
             "algorithms": {
                 "kem": "NIST FIPS 203 ML-KEM-768 (Category 3)",
                 "signature": "NIST FIPS 204 ML-DSA-65 (Category 3)",
@@ -181,9 +191,14 @@ class DemoManager:
 
         # Retrieve raw envelope from storage for wire inspection & interceptor
         stored_items = self.storage.mailboxes.get(recipient_id, [])
-        latest_item = stored_items[-1] if stored_items else {}
-        env_dict = latest_item.get("envelope", latest_item)
-        hdr = env_dict.get("header", {})
+        if stored_items:
+            latest_item = stored_items[-1]
+            env_dict = latest_item.get("envelope", latest_item)
+        else:
+            env_dict = res.get("envelope", {})
+            latest_item = res.get("message_payload", {"envelope": env_dict})
+
+        hdr = env_dict.get("header", {}) if isinstance(env_dict, dict) else {}
 
         is_healing_turn = hdr.get("kem_ct") is not None or hdr.get("ratchet_turn", 0) > 0
 
@@ -224,10 +239,15 @@ class DemoManager:
             }
 
         # Check if interceptor tampered with the packet
-        if interceptor.mode == "tamper" and pkt.get("tampered_envelope"):
+        if interceptor.is_on() and pkt.get("tampered_envelope"):
             tampered_env = pkt["tampered_envelope"]
+            new_item = {"envelope": tampered_env}
+            if isinstance(latest_item, dict) and "handshake_init" in latest_item:
+                new_item["handshake_init"] = latest_item["handshake_init"]
             if stored_items:
-                stored_items[-1] = {"envelope": tampered_env}
+                stored_items[-1] = new_item
+            else:
+                self.storage.store_message(recipient.user_id, new_item)
             env_dict = tampered_env
 
         self.conversation_history.append(msg_record)
@@ -242,7 +262,27 @@ class DemoManager:
                     msg_record["is_tampered"] = True
                     msg_record["signature_verified"] = False
         except Exception as e:
-            msg_record["status"] = "decryption_error"
+            if interceptor.is_on():
+                msg_record["status"] = "tamper_detected_and_dropped"
+                msg_record["is_tampered"] = True
+                msg_record["signature_verified"] = False
+                msg_record["text"] = f"❌ [SECURITY ALERT: ML-DSA-65 Signature Tampered / MAC Invalid. Packet Dropped by {recipient.user_id.capitalize()}.]"
+            else:
+                msg_record["status"] = "decryption_error"
+
+        if msg_record.get("is_tampered"):
+            return {
+                "status": "tamper_error",
+                "error": "❌ Security Alert: Message was tampered in transit by the intruder server! NIST FIPS 204 ML-DSA-65 signature verification failed.",
+                "message": msg_record,
+                "envelope": {
+                    "ciphertext": env_dict.get("ciphertext", "")[:48] + "...",
+                    "signature": env_dict.get("signature", "")[:48] + "...",
+                    "dh_pub": hdr.get("dh_pub", ""),
+                    "kem_pub": (hdr.get("kem_pub") or "")[:32] + "...",
+                    "ratchet_turn": hdr.get("ratchet_turn", 0),
+                },
+            }
 
         return {
             "status": "success",
@@ -269,7 +309,41 @@ class DemoManager:
         recipient = self.get_or_create_client(recipient_id)
 
         file_id = sender.upload_file(content_bytes, filename, recipient.user_id)
-        manifest_dict = self.storage.manifests[file_id]
+        manifest_dict = self.storage.manifests.get(file_id)
+        if not manifest_dict:
+            try:
+                from src.server.app import storage as global_storage
+                manifest_dict = global_storage.manifests.get(file_id)
+                if manifest_dict:
+                    self.storage.manifests[file_id] = manifest_dict
+            except Exception:
+                pass
+        if not manifest_dict:
+            raise KeyError(f"Manifest for file ID {file_id} not found in storage")
+
+        # Wire intercept hook: notify AttackerInterceptor
+        from src.attacker.interceptor import AttackerInterceptor
+        interceptor = AttackerInterceptor.get_instance()
+        vault_pkt_res = interceptor.intercept_vault_file(
+            sender.user_id, recipient.user_id, filename, manifest_dict
+        )
+
+        if vault_pkt_res.get("is_tampered"):
+            # Overwrite stored manifest with tampered manifest in storage
+            self.storage.manifests[file_id] = vault_pkt_res["tampered_manifest"]
+            return {
+                "status": "uploaded_tampered",
+                "file_id": file_id,
+                "filename": filename,
+                "total_size": len(content_bytes),
+                "chunk_count": manifest_dict.get("chunk_count", 0),
+                "chunk_hashes": manifest_dict.get("chunk_hashes", []),
+                "encrypted_chunk_hashes": manifest_dict.get("encrypted_chunk_hashes", []),
+                "wrapped_dek_preview": manifest_dict.get("wrapped_dek", {}).get("encrypted_dek", "")[:32] + "...",
+                "signature_preview": manifest_dict.get("signature", "")[:32] + "...",
+                "is_tampered": True,
+                "warning": "⚠️ Security Alert: Document intercepted and tampered in transit by the intruder server! Manifest ML-DSA-65 signature corrupted.",
+            }
 
         return {
             "status": "uploaded",
@@ -281,6 +355,7 @@ class DemoManager:
             "encrypted_chunk_hashes": manifest_dict.get("encrypted_chunk_hashes", []),
             "wrapped_dek_preview": manifest_dict.get("wrapped_dek", {}).get("encrypted_dek", "")[:32] + "...",
             "signature_preview": manifest_dict.get("signature", "")[:32] + "...",
+            "is_tampered": False,
         }
 
     def download_file(self, user_id: str, file_id: str) -> Dict[str, Any]:
@@ -288,6 +363,16 @@ class DemoManager:
         self.ensure_clients()
         user_client = self.get_or_create_client(user_id)
         manifest_dict = self.storage.manifests.get(file_id)
+        if not manifest_dict:
+            try:
+                from src.server.app import storage as global_storage
+                manifest_dict = global_storage.manifests.get(file_id)
+                if manifest_dict:
+                    self.storage.manifests[file_id] = manifest_dict
+            except Exception:
+                pass
+        if not manifest_dict:
+            raise KeyError(f"File ID {file_id} not found")
         if not manifest_dict:
             raise KeyError(f"File ID {file_id} not found")
 
@@ -314,7 +399,7 @@ class DemoManager:
         except Exception as e:
             return {
                 "status": "decryption_failed",
-                "error": f"Decryption error: {str(e)}",
+                "error": f"❌ Cryptographic Integrity Error: Document was tampered in transit by the intruder server! NIST FIPS 204 ML-DSA-65 signature or chunk hash verification failed: {str(e)}",
                 "file_id": file_id,
                 "filename": manifest_dict["filename"],
                 "is_text": False,

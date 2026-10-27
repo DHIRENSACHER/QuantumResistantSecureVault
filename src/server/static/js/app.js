@@ -92,11 +92,27 @@ function switchPeer(newPeer) {
   loadState();
 }
 
+function showChatErrorBanner(errorMsg) {
+  const banner = document.getElementById("chat-alert-banner");
+  const bannerText = document.getElementById("chat-alert-banner-text");
+  if (banner && bannerText) {
+    bannerText.textContent = errorMsg;
+    banner.style.display = "flex";
+  }
+}
+
+function hideChatErrorBanner() {
+  const banner = document.getElementById("chat-alert-banner");
+  if (banner) {
+    banner.style.display = "none";
+  }
+}
+
 function updatePeerDropdown(users) {
   const select = document.getElementById("peer-selector");
   if (!select) return;
 
-  const peers = users.filter(u => u.toLowerCase() !== currentUser);
+  const peers = users.filter(u => u.toLowerCase() !== currentUser && u.toLowerCase() !== 'intruder');
   const currentVal = select.value || currentPeer;
 
   // Re-populate if options changed
@@ -232,9 +248,20 @@ async function sendMessage() {
         text: text
       })
     });
-    if (res.ok) loadState();
+    if (!res.ok) {
+      const errText = await res.text();
+      showChatErrorBanner(`Server error (${res.status}): ${errText}`);
+      return;
+    }
+    const data = await res.json();
+    if (data.status === "tamper_error" || data.error) {
+      showChatErrorBanner(data.error || "Security Alert: Message was tampered in transit by the intruder server! Recipient dropped the corrupted envelope.");
+    } else {
+      hideChatErrorBanner();
+    }
+    loadState();
   } catch (err) {
-    alert("Send error: " + err);
+    showChatErrorBanner("Send error: " + err);
   }
 }
 
@@ -252,9 +279,20 @@ async function quickSend(role, text) {
         text: text
       })
     });
-    if (res.ok) loadState();
+    if (!res.ok) {
+      const errText = await res.text();
+      showChatErrorBanner(`Server error (${res.status}): ${errText}`);
+      return;
+    }
+    const data = await res.json();
+    if (data.status === "tamper_error" || data.error) {
+      showChatErrorBanner(data.error || "Security Alert: Message was tampered in transit by the intruder server! Recipient dropped the corrupted envelope.");
+    } else {
+      hideChatErrorBanner();
+    }
+    loadState();
   } catch (err) {
-    alert("Error: " + err);
+    showChatErrorBanner("Error: " + err);
   }
 }
 
@@ -353,8 +391,18 @@ async function uploadSelectedFile() {
       })
     });
 
+    if (!res.ok) {
+      const errText = await res.text();
+      statusBox.innerHTML += `<div style="color:red; font-weight:700;">Server error (${res.status}): ${errText}</div>`;
+      return;
+    }
+
     const data = await res.json();
-    statusBox.innerHTML += `<div style="color:var(--text-main); font-weight:700;">✔ Uploaded ${data.chunk_count} chunks (Encrypted for ${recipient})</div>`;
+    if (data.is_tampered || data.status === "uploaded_tampered") {
+      statusBox.innerHTML += `<div style="color:#dc2626; font-weight:800; margin-top:6px;">❌ SECURITY ALERT: Document intercepted & tampered in transit by the intruder server! Manifest signature corrupted. Recipient decryption will fail.</div>`;
+    } else {
+      statusBox.innerHTML += `<div style="color:var(--text-main); font-weight:700;">✔ Uploaded ${data.chunk_count} chunks (Encrypted for ${recipient})</div>`;
+    }
     refreshVaultFiles();
   } catch (err) {
     statusBox.innerHTML += `<div style="color:red;">Error: ${err}</div>`;
@@ -425,18 +473,26 @@ async function downloadFile(fileId) {
         file_id: fileId
       })
     });
+    if (!res.ok) {
+      const errText = await res.text();
+      alert(`Server error (${res.status}): ${errText}`);
+      return;
+    }
     const data = await res.json();
 
     if (data.status === "decryption_failed") {
-      openModal(`Access Denied: ${data.filename}`, `
-        <div style="padding:10px 0; color:#dc2626; font-weight:700; font-size:0.95rem;">
-          ❌ Decryption Rejected
+      const isTamper = data.error && (data.error.includes("tamper") || data.error.includes("signature") || data.error.includes("Integrity"));
+      openModal(isTamper ? `Tamper Security Alert: ${data.filename}` : `Access Denied: ${data.filename}`, `
+        <div style="padding:10px 0; color:#dc2626; font-weight:800; font-size:1rem;">
+          ❌ ${isTamper ? "Cryptographic Tampering Detected" : "Decryption Rejected"}
         </div>
         <div style="font-size:0.84rem; color:var(--text-secondary); line-height:1.5;">
           ${escapeHtml(data.error)}
         </div>
         <div style="margin-top:14px; padding:12px 14px; border-radius:var(--radius-sm); background:var(--bg-inset); font-size:0.76rem; color:var(--text-main); line-height:1.4;">
-          <strong>Cryptographic Key Isolation:</strong> Each user holds a distinct ML-KEM-768 private key. Because this file was encrypted for a different recipient, your private key cannot unwrap the AES-256-GCM Data Encryption Key (DEK).
+          ${isTamper
+            ? "<strong>Intruder Detection:</strong> The intruder server modified wire packets in transit. NIST FIPS 204 ML-DSA-65 signature authentication detected the corruption and rejected the tampered document."
+            : "<strong>Cryptographic Key Isolation:</strong> Each user holds a distinct ML-KEM-768 private key. Because this file was encrypted for a different recipient, your private key cannot unwrap the AES-256-GCM Data Encryption Key (DEK)."}
         </div>
       `);
       return;

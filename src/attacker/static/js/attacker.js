@@ -5,12 +5,68 @@
 
 let packetsList = [];
 let selectedPacketId = null;
-let currentMode = "hold";
+let currentMode = "tamper";
+let isServerOn = true;
 
 document.addEventListener("DOMContentLoaded", () => {
   fetchPackets();
-  setInterval(fetchPackets, 2500);
+  setInterval(fetchPackets, 2000);
 });
+
+function updatePowerUI(isOn) {
+  isServerOn = !!isOn;
+  const btnOn = document.getElementById("power-btn-on");
+  const btnOff = document.getElementById("power-btn-off");
+  const banner = document.getElementById("master-status-banner");
+  const headline = document.getElementById("status-headline");
+  const subtext = document.getElementById("status-subtext");
+  const badge = document.getElementById("status-badge-live");
+
+  if (isServerOn) {
+    if (btnOn) btnOn.classList.add("active");
+    if (btnOff) btnOff.classList.remove("active");
+    if (banner) {
+      banner.classList.remove("off");
+      banner.classList.add("on");
+    }
+    if (headline) headline.textContent = "INTRUDER SERVER IS ON — AUTOMATIC WIRE TAMPERING ACTIVE";
+    if (subtext) subtext.textContent = "All chat messages and shared vault documents between Alice and Bob are automatically intercepted and tampered on the wire, triggering cryptographic verification errors on their end.";
+    if (badge) {
+      badge.textContent = "TAMPERING ACTIVE";
+    }
+  } else {
+    if (btnOff) btnOff.classList.add("active");
+    if (btnOn) btnOn.classList.remove("active");
+    if (banner) {
+      banner.classList.remove("on");
+      banner.classList.add("off");
+    }
+    if (headline) headline.textContent = "INTRUDER SERVER IS OFF — STANDBY / PASS-THROUGH MODE";
+    if (subtext) subtext.textContent = "Wiretap is in standby. Messages and vault documents pass between Alice and Bob cleanly without tampering or errors.";
+    if (badge) {
+      badge.textContent = "STANDBY (CLEAN)";
+    }
+  }
+}
+
+async function togglePower(state) {
+  const isOn = (state === 'on');
+  updatePowerUI(isOn);
+  try {
+    const res = await fetch("/api/v1/attacker/power", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ state: state })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      updatePowerUI(data.is_on);
+      fetchPackets();
+    }
+  } catch (e) {
+    console.error("Error toggling power:", e);
+  }
+}
 
 async function fetchPackets() {
   try {
@@ -19,10 +75,12 @@ async function fetchPackets() {
     const data = await res.json();
     packetsList = data.packets || [];
 
-    // Update telemetry
+    // Update telemetry and power state
     if (data.status) {
-      currentMode = data.status.interceptor_mode || "hold";
-      updateModeButtons(currentMode);
+      currentMode = data.status.interceptor_mode || "tamper";
+      const onState = (data.status.is_on !== undefined) ? data.status.is_on : (currentMode === "tamper" || currentMode === "on");
+      updatePowerUI(onState);
+
       if (data.status.stats) {
         document.getElementById("stat-intercepted").textContent = data.status.stats.total_intercepted || 0;
         document.getElementById("stat-reads").textContent = data.status.stats.read_attempts || 0;
@@ -45,34 +103,12 @@ async function fetchPackets() {
   }
 }
 
-function updateModeButtons(mode) {
-  document.querySelectorAll(".mode-btn").forEach(btn => btn.classList.remove("active"));
-  const activeBtn = document.getElementById(`mode-${mode}`);
-  if (activeBtn) activeBtn.classList.add("active");
-}
-
-async function setMode(mode) {
-  try {
-    const res = await fetch("/api/v1/attacker/mode", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mode: mode })
-    });
-    if (res.ok) {
-      currentMode = mode;
-      updateModeButtons(mode);
-    }
-  } catch (e) {
-    alert("Error changing mode: " + e);
-  }
-}
-
 function renderPacketsStream() {
   const container = document.getElementById("packets-container");
   if (packetsList.length === 0) {
     container.innerHTML = `
       <div style="text-align:center; padding:48px 16px; color:var(--text-dim); font-size:0.82rem; font-family:var(--font-mono);">
-        No intercepted packets yet.<br>Send a message between Alice & Bob in the Vault app to capture live wire traffic.
+        No intercepted packets yet.<br>Send a message or deposit a document between Alice & Bob in the Vault app to capture live wire traffic.
       </div>
     `;
     return;
@@ -86,17 +122,28 @@ function renderPacketsStream() {
     item.onclick = () => selectPacket(pkt.packet_id);
 
     const timeStr = new Date(pkt.timestamp * 1000).toLocaleTimeString();
+    const isVault = pkt.payload_type === "vault_file";
+    const typeBadge = isVault
+      ? `<span style="font-size:0.68rem; padding:2px 6px; border-radius:4px; background:rgba(168,85,247,0.15); color:var(--cyber-purple); font-weight:800;">VAULT FILE</span>`
+      : `<span style="font-size:0.68rem; padding:2px 6px; border-radius:4px; background:rgba(56,189,248,0.15); color:var(--cyber-blue); font-weight:800;">HPQ-DR MSG</span>`;
+
+    const subInfo = isVault
+      ? `<span>File: ${escapeHtml(pkt.filename || 'vault_deposit')} • ${pkt.seq_num} chunks</span>`
+      : `<span>Turn #${pkt.ratchet_turn} • Seq #${pkt.seq_num}</span>`;
 
     item.innerHTML = `
       <div class="packet-item-header">
-        <span style="font-weight:700; color:var(--text-main);">${pkt.sender_id.toUpperCase()} ➔ ${pkt.recipient_id.toUpperCase()}</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          ${typeBadge}
+          <span style="font-weight:700; color:var(--text-main);">${pkt.sender_id.toUpperCase()} ➔ ${pkt.recipient_id.toUpperCase()}</span>
+        </div>
         <span class="status-badge ${pkt.status}">${pkt.status.replace('_', ' ')}</span>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:0.74rem; font-family:var(--font-mono); color:var(--text-muted);">
-        <span>Turn #${pkt.ratchet_turn} • Seq #${pkt.seq_num}</span>
+      <div style="display:flex; justify-content:space-between; font-size:0.74rem; font-family:var(--font-mono); color:var(--text-muted); margin-top:4px;">
+        ${subInfo}
         <span>${pkt.ciphertext_len} B Payload</span>
       </div>
-      <div style="font-size:0.7rem; font-family:var(--font-mono); color:var(--text-dim);">
+      <div style="font-size:0.7rem; font-family:var(--font-mono); color:var(--text-dim); margin-top:2px;">
         Captured: ${timeStr} • ID: ${pkt.packet_id.slice(-8)}
       </div>
     `;

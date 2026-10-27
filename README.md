@@ -73,21 +73,99 @@ Furthermore, early post-quantum adaptations (such as Signal PQXDH) hybridize onl
 
 ---
 
-## 4. Quick Start & Usage
+## 4. Run Guide & Quick Start
 
-### Running Tests
-Execute the comprehensive test suite across all 29 unit and integration tests:
+### 4.1 Prerequisites & Installation
+
+- **Python Version**: Python 3.11 or higher (Python 3.13 supported)
+- **Virtual Environment**: Recommended to prevent dependency collisions
+
 ```bash
-python3 -m pytest tests/ -o cache_dir=/tmp/pytest_cache -v
+# 1. Clone the repository and navigate into the project
+cd QuantumResistantSecureVault
+
+# 2. Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# 3. Install dependencies in editable mode
+pip install -e ".[dev]"
 ```
 
-### Running the Quantum Attack Simulator
-Simulate an active Harvest-Now-Decrypt-Later eavesdropper intercepting traffic and attempting a Shor's algorithm quantum break:
+---
+
+### 4.2 Running the Main Application & Relay Server (Port 8000)
+
+Start the zero-access relay server and Neumorphic web interface:
+
+```bash
+python3 src/server/app.py
+```
+*Alternatively, start directly with Uvicorn (hot-reloading enabled):*
+```bash
+python3 -m uvicorn src.server.app:app --host 127.0.0.1 --port 8000 --reload
+```
+
+- **Web Dashboard**: Open [http://127.0.0.1:8000](http://127.0.0.1:8000) or [http://127.0.0.1:8000/login](http://127.0.0.1:8000/login) in your browser.
+- **Interactive Features**:
+  - **Identities**: Log in as pre-seeded demo clients (`alice` or `bob`) or register any custom user ID.
+  - **HPQ-DR Messaging**: Send live messages protected by the Hybrid Post-Quantum Double Ratchet.
+  - **Zero-Access Vault**: Drag-and-drop or select files to chunk, encrypt with ephemeral DEKs, encapsulate under ML-KEM-768, sign manifests via ML-DSA-65, and download/verify on recipient clients.
+  - **Crypto Transparency**: Inspect public key fingerprints, ratchet state transitions, and server zero-knowledge storage metrics.
+
+---
+
+### 4.3 Running the Attacker / MITM Interception Server (Port 8080)
+
+To simulate an active on-the-wire eavesdropper and Man-In-The-Middle (MITM) adversary:
+
+```bash
+python3 src/attacker/server.py
+```
+*Alternatively:*
+```bash
+python3 -m uvicorn src.attacker.server:app --host 127.0.0.1 --port 8080
+```
+
+- **Attacker Console**: Open [http://127.0.0.1:8080](http://127.0.0.1:8080) in your browser.
+- **Capabilities & Independent Architecture**:
+  - **Master ON / OFF Control**: Toggle active wire interception on or off with a single click.
+  - **Automatic Wire Tampering (ON)**: When ON, chat messages and vault documents exchanged between Alice and Bob are automatically intercepted and tampered on the wire. When Alice and Bob attempt to chat or decrypt shared documents, NIST FIPS 204 ML-DSA-65 digital signature and AEAD integrity verification fail, raising security alerts and error modals.
+  - **Clean Pass-Through (OFF)**: When OFF, traffic passes unhindered without tampering, and Alice & Bob communicate cleanly.
+  - **Complete Isolation**: The Intruder operates strictly on the dedicated 8080 interception console and is not listed as a user on the main server (port 8000).
+
+---
+
+### 4.4 Running the Quantum Attack Simulator (CLI)
+
+Demonstrate in your terminal why classical encryption fails against Harvest-Now-Decrypt-Later (HNDL) attacks and how HPQ-DR prevents decryption:
+
 ```bash
 python3 -m src.cli.main simulate-harvest
 ```
 
-### Using the Python Client SDK
+This interactive terminal simulator runs through:
+1. Intercepting a real HPQ-DR wire envelope.
+2. Executing a simulated Shor's algorithm run on a CRQC breaking classical X25519 ECDH.
+3. Proving that lattice-based ML-KEM-768 prevents the adversary from deriving session keys.
+4. Demonstrating legitimate decryption and zero-access vault reassembly by the genuine recipient.
+
+---
+
+### 4.5 Running the Automated Test Suite
+
+Run the full automated test suite (36 unit and integration tests across crypto primitives, ratchets, vaults, and servers):
+
+```bash
+python3 -m pytest tests/ -o cache_dir=/tmp/pytest_cache -v
+```
+
+---
+
+### 4.6 Using the Python Client SDK
+
+You can also integrate the client directly into custom Python applications:
+
 ```python
 from src.client.sdk import VaultClient
 

@@ -4,23 +4,31 @@ from __future__ import annotations
 
 import base64
 import os
+import sys
 from typing import Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+# Ensure project root is in sys.path when running as a direct script
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+
+if __name__ == "__main__":
+    sys.modules["src.server.app"] = sys.modules[__name__]
+
 from src.server.storage import ZeroAccessStorage
 from src.server.demo_service import DemoManager
 
 storage = ZeroAccessStorage()
-demo_manager = DemoManager(storage)
 
 app = FastAPI(
     title="Zero-Access HPQ-DR Relay & Vault Server",
     description="Untrusted relay server for hybrid post-quantum messaging and encrypted file vault",
     version="1.0.0",
 )
+
+demo_manager = DemoManager(storage, app=app)
 
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 if os.path.exists(STATIC_DIR):

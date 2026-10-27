@@ -180,10 +180,10 @@
 
       <div id="login-error-msg" class="login-error"></div>
 
-      <!-- Quick Identity Selection (3 Accounts) -->
+      <!-- Quick Identity Selection (Alice & Bob) -->
       <div>
         <div class="quick-users-label">Select Registered Identity</div>
-        <div class="quick-users-grid" id="quick-users-container" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="quick-users-grid" id="quick-users-container">
           <button class="user-select-btn active" onclick="selectUser('alice')">
             <span>Alice</span>
             <span style="font-size:0.68rem; color:var(--text-muted);">Sender</span>
@@ -192,24 +192,7 @@
             <span>Bob</span>
             <span style="font-size:0.68rem; color:var(--text-muted);">Receiver</span>
           </button>
-          <button class="user-select-btn" onclick="selectUser('intruder')">
-            <span style="color:#ef4444;">Intruder</span>
-            <span style="font-size:0.68rem; color:var(--text-muted);">Attacker</span>
-          </button>
         </div>
-      </div>
-
-      <!-- Attacker Console Quick Launch Banner -->
-      <div id="attacker-console-banner" style="display:none; padding:12px 14px; border-radius:var(--radius-md); background:var(--bg-inset); box-shadow:var(--nm-inset-sm); text-align:left; border-left:3px solid #ef4444;">
-        <div style="font-size:0.75rem; font-weight:800; color:var(--text-main); margin-bottom:4px;">
-          ⚔️ Adversary Interception Console
-        </div>
-        <div style="font-size:0.72rem; color:var(--text-secondary); line-height:1.4;">
-          The Intruder possesses an independent backend server on Port 8080 for deep packet inspection, Shor's cryptanalysis, in-transit payload tampering, and message dropping.
-        </div>
-        <a href="http://127.0.0.1:8080" target="_blank" class="nm-btn-dark" style="margin-top:10px; width:100%; text-decoration:none; padding:8px 12px; font-size:0.75rem;">
-          Open Attacker Console (Port 8080) ↗
-        </a>
       </div>
 
       <!-- Custom Identity Input -->
@@ -286,7 +269,7 @@
       const currentVal = document.getElementById('login-user-input').value.trim().toLowerCase();
       container.innerHTML = '';
 
-      users.forEach(u => {
+      users.filter(u => u.user_id !== 'intruder').forEach(u => {
         const btn = document.createElement('button');
         const isActive = u.user_id === currentVal;
         btn.className = `user-select-btn ${isActive ? 'active' : ''}`;
@@ -317,21 +300,11 @@
     function selectUser(userId) {
       document.getElementById('login-user-input').value = userId;
       updateQuickButtonsActive(userId);
-
-      const banner = document.getElementById('attacker-console-banner');
-      if (banner) {
-        banner.style.display = (userId === 'intruder') ? 'block' : 'none';
-      }
     }
 
     function handleUserInputChange() {
       const val = document.getElementById('login-user-input').value.trim().toLowerCase();
       updateQuickButtonsActive(val);
-
-      const banner = document.getElementById('attacker-console-banner');
-      if (banner) {
-        banner.style.display = (val === 'intruder') ? 'block' : 'none';
-      }
     }
 
     function updateQuickButtonsActive(userId) {

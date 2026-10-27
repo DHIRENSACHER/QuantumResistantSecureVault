@@ -88,7 +88,13 @@ class VaultClient:
             json={"recipient_id": recipient_id, "envelope": message_payload},
         )
         resp.raise_for_status()
-        return {"status": "sent", "recipient_id": recipient_id, "ratchet_turn": envelope.header.ratchet_turn}
+        return {
+            "status": "sent",
+            "recipient_id": recipient_id,
+            "ratchet_turn": envelope.header.ratchet_turn,
+            "envelope": envelope_dict,
+            "message_payload": message_payload,
+        }
 
     def fetch_messages(self) -> List[dict]:
         """Pulls pending encrypted envelopes from server inbox and decrypts them."""

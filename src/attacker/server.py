@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import os
+import sys
 from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import requests
+
+# Ensure project root is in sys.path when running as a direct script
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from src.attacker.interceptor import AttackerInterceptor
 
@@ -48,7 +52,11 @@ class ModifyPayloadRequest(BaseModel):
 
 
 class ModeChangeRequest(BaseModel):
-    mode: str  # hold, pass, tamper, drop
+    mode: str  # on, off, hold, pass, tamper, drop
+
+
+class PowerToggleRequest(BaseModel):
+    state: str = "on"  # on or off
 
 
 # -----------------------------------------------------------------------------
@@ -68,10 +76,30 @@ def get_status():
     return interceptor.get_status()
 
 
+@app.get("/api/v1/attacker/power")
+def get_power():
+    return {
+        "status": "ok",
+        "is_on": interceptor.is_on(),
+        "mode": interceptor.get_status()["interceptor_mode"],
+    }
+
+
+@app.post("/api/v1/attacker/power")
+def set_power(req: PowerToggleRequest):
+    is_on = str(req.state).lower() in ("on", "true", "1")
+    interceptor.set_power(is_on)
+    return {
+        "status": "updated",
+        "is_on": interceptor.is_on(),
+        "mode": interceptor.get_status()["interceptor_mode"],
+    }
+
+
 @app.post("/api/v1/attacker/mode")
 def set_mode(req: ModeChangeRequest):
     new_mode = interceptor.set_mode(req.mode)
-    return {"status": "updated", "mode": new_mode}
+    return {"status": "updated", "mode": new_mode, "is_on": interceptor.is_on()}
 
 
 @app.get("/api/v1/attacker/packets")

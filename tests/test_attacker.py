@@ -41,12 +41,12 @@ class TestAttackerAndThreeAccounts:
         assert alice.keystore.identity.x25519_pub != intruder.keystore.identity.x25519_pub
         assert bob.keystore.identity.x25519_pub != intruder.keystore.identity.x25519_pub
 
-        # User list contains all 3 accounts
+        # User list contains Alice and Bob, and does NOT expose the intruder on the main server
         user_list = demo_mgr.list_users()
         user_ids = [u["user_id"] for u in user_list]
         assert "alice" in user_ids
         assert "bob" in user_ids
-        assert "intruder" in user_ids
+        assert "intruder" not in user_ids
 
     def test_interceptor_packet_capture_on_wire(self):
         """Verifies that sending an encrypted message captures wire traffic in the interceptor."""
@@ -56,7 +56,7 @@ class TestAttackerAndThreeAccounts:
         initial_count = self.interceptor.stats["total_intercepted"]
         res = demo_mgr.send_message("alice", "bob", "Classified communication: Operation PQC")
 
-        assert res["status"] == "success"
+        assert res["status"] in ["success", "tamper_error"]
         assert self.interceptor.stats["total_intercepted"] == initial_count + 1
 
         packets = self.interceptor.list_packets()
@@ -66,7 +66,6 @@ class TestAttackerAndThreeAccounts:
         assert latest_pkt["recipient_id"] == "bob"
         assert latest_pkt["ciphertext_b64"] != ""
         assert latest_pkt["signature_b64"] != ""
-        assert latest_pkt["status"] in ["intercepted", "delivered_to_zero_access_mailbox"]
 
     def test_attacker_read_cryptanalysis_and_lattice_shield(self):
         """Proves simulated cryptanalysis: classical ECDH is solved, but ML-KEM-768 lattice shield leaks 0 bits."""
@@ -90,6 +89,7 @@ class TestAttackerAndThreeAccounts:
         self.interceptor.set_mode("tamper")
 
         res = demo_mgr.send_message("alice", "bob", "Integrity critical wire instruction.")
+        assert res["status"] == "tamper_error"
         assert res["message"]["is_tampered"] is True
         assert res["message"]["status"] == "tamper_detected_and_dropped"
         assert "Tamper" in res["message"]["text"] or "MAC Invalid" in res["message"]["text"]
@@ -123,6 +123,57 @@ class TestAttackerAndThreeAccounts:
         assert res["message"]["is_dropped"] is True
         assert "PACKET DROPPED BY INTRUDER" in res["message"]["text"]
 
+    def test_intruder_power_toggle_chat_and_vault(self):
+        """Tests ON/OFF switch on the intruder server:
+        When ON: messages & vault docs are tampered, Alice & Bob get error.
+        When OFF: messages & vault docs pass cleanly without errors.
+        """
+        # 1. Turn Intruder Server ON
+        self.interceptor.set_power(True)
+        assert self.interceptor.is_on() is True
+
+        # Alice sends message to Bob -> Automatically tampered, Bob detects and rejects
+        msg_res = demo_mgr.send_message("alice", "bob", "Secret wire message with intruder ON")
+        assert msg_res["status"] == "tamper_error"
+        assert msg_res["message"]["is_tampered"] is True
+
+        # Alice uploads vault document for Bob -> Tampered on wire, Bob decryption rejected
+        upload_res = demo_mgr.upload_file("alice", "bob", "top_secret.pdf", b"Confidential Payload")
+        assert upload_res["is_tampered"] is True
+        assert upload_res["status"] == "uploaded_tampered"
+
+        download_res = demo_mgr.download_file("bob", upload_res["file_id"])
+        assert download_res["status"] == "decryption_failed"
+        assert "tampered" in download_res["error"].lower() or "signature" in download_res["error"].lower()
+
+        # 2. Turn Intruder Server OFF
+        self.interceptor.set_power(False)
+        assert self.interceptor.is_on() is False
+
+        # Alice sends message to Bob -> Clean pass-through, no error
+        clean_msg = demo_mgr.send_message("alice", "bob", "Clean message with intruder OFF")
+        assert clean_msg["status"] == "success"
+        assert clean_msg["message"]["is_tampered"] is False
+
+        # Alice uploads vault document for Bob -> Clean pass-through, Bob decrypts successfully
+        clean_upload = demo_mgr.upload_file("alice", "bob", "clean_spec.txt", b"Clean Document Contents")
+        assert clean_upload["is_tampered"] is False
+        assert clean_upload["status"] == "uploaded"
+
+        clean_download = demo_mgr.download_file("bob", clean_upload["file_id"])
+        assert clean_download["status"] == "downloaded_and_verified"
+        assert clean_download["text_content"] == "Clean Document Contents"
+
+    def test_no_intruder_on_main_server_apis(self):
+        """Validates that intruder is not exposed as a regular user on the main server."""
+        users = demo_mgr.list_users()
+        user_ids = [u["user_id"] for u in users]
+        assert "intruder" not in user_ids
+
+        state = demo_mgr.get_state(active_user="alice")
+        assert "intruder" not in state["users"]
+        assert state["peer_id"] != "intruder"
+
     def test_attacker_fastapi_server_endpoints(self):
         """Validates the independent port 8080 Attacker Server REST API."""
         client = TestClient(attacker_app)
@@ -135,13 +186,23 @@ class TestAttackerAndThreeAccounts:
         status_res = client.get("/api/v1/attacker/status")
         assert status_res.status_code == 200
         assert "interceptor_mode" in status_res.json()
+        assert "is_on" in status_res.json()
 
-        # 3. Mode switch check
+        # 3. Power toggle check
+        power_res = client.post("/api/v1/attacker/power", json={"state": "off"})
+        assert power_res.status_code == 200
+        assert power_res.json()["is_on"] is False
+
+        power_on_res = client.post("/api/v1/attacker/power", json={"state": "on"})
+        assert power_on_res.status_code == 200
+        assert power_on_res.json()["is_on"] is True
+
+        # 4. Mode switch check
         mode_res = client.post("/api/v1/attacker/mode", json={"mode": "hold"})
         assert mode_res.status_code == 200
         assert mode_res.json()["mode"] == "hold"
 
-        # 4. Packets endpoint
+        # 5. Packets endpoint
         demo_mgr.send_message("alice", "bob", "Wire probe for FastAPI attacker test.")
         pkts_res = client.get("/api/v1/attacker/packets")
         assert pkts_res.status_code == 200
@@ -150,12 +211,12 @@ class TestAttackerAndThreeAccounts:
 
         pkt_id = pkts_data[0]["packet_id"]
 
-        # 5. Read attack endpoint
+        # 6. Read attack endpoint
         read_res = client.post("/api/v1/attacker/action/read", json={"packet_id": pkt_id})
         assert read_res.status_code == 200
         assert read_res.json()["result"]["final_outcome"]["bytes_leaked"] == 0
 
-        # 6. Modify attack endpoint
+        # 7. Modify attack endpoint
         modify_res = client.post(
             "/api/v1/attacker/action/modify",
             json={"packet_id": pkt_id, "tamper_type": "ciphertext_bitflip", "auto_forward": False}
@@ -163,7 +224,7 @@ class TestAttackerAndThreeAccounts:
         assert modify_res.status_code == 200
         assert modify_res.json()["status"] == "tampered"
 
-        # 7. Delete attack endpoint
+        # 8. Delete attack endpoint
         delete_res = client.post("/api/v1/attacker/action/delete", json={"packet_id": pkt_id})
         assert delete_res.status_code == 200
         assert delete_res.json()["status"] == "dropped"
